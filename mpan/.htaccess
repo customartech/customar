@@ -1,0 +1,62 @@
+RewriteEngine on
+    
+ErrorDocument 404 /index.php?type=notpage
+ErrorDocument 500 /error500.html
+RewriteRule index.html$ index.php
+RewriteRule logout.html$ /logout.php
+RewriteRule reservation.html$ /ajax-load/reservation.php
+RewriteRule forgot.html$ /forgot.php
+RewriteRule changeuser_(.*)\.html$ /loginusers.php?access_key=$1 [L]
+RewriteRule login.html$ /index.php?lang=$1&type=login [L]
+RewriteRule signup.html$ /index.php?lang=$1&type=signup [L]
+RewriteRule profile.html$ /index.php?lang=$1&type=profile [L]
+RewriteRule captcha.jpg$ img_captcha.php
+RewriteRule cvi.png$ convVideoInf.php
+RewriteRule feed.xml$ rss.php
+RewriteRule ping.html$ xmlping/index.php
+RewriteRule sitemap.xml$ sitemaps.php
+RewriteRule sitemapvideo.xml$ sitemaps_video.php
+#RewriteRule sitemaps([0-9]*)\.xml$ sitemaps.php?seh=$1 [L]
+RewriteRule axtar.html$ index.php?lang=az&type=axtar
+RewriteRule allchannel.html$ index.php?lang=az&type=allchannel
+RewriteRule plbanner_([0-9]*)_([0-9]*)\.html$ plbannerdb.php?type=$1&vid=$2
+RewriteRule videolatest.html$ index.php?lang=az&type=videolatest
+RewriteRule ^scroolling_([A-Za-z)]+)_([0-9]*)_([0-9]*)_([0-9]*)_([0-9]*)\.html$ scroolling.php?type=$1&cid=$2&lastID=$3&sort=$4&subid=$5 [L] 
+RewriteRule direct([0-9]*)\.html$ direct.php?vid=$1 [L]
+RewriteRule forsites([0-9]*)\.html$ forsites.php?site=$1 [L]
+RewriteRule print_page_([0-9]*)\.html$ print.php?cid=$1 [L]
+RewriteRule download_([0-9]*)\.html$ down.php?cid=$1 [L]
+RewriteRule ^image_([0-9]*)_([0-9]*)_(.*)\.jpg$ image.php?img=$3&w=$1&h=$2 [L] 
+RewriteRule ^imageg_([0-9]*)_([0-9]*)_(.*)_(.*)_(.*)\.jpg$ image.php?img=$3&w=$1&h=$2&type=$4&cid=$5 [L] 
+RewriteRule ^imagen_([0-9]*)_([0-9]*)_(.*)_(.*)\.jpg$ image.php?img=$3&w=$1&h=$2&type=$4 [L] 
+RewriteRule ^img_([0-9]*)_([0-9]*)_(.*)$ imgcr.php?img=$3&w=$1&h=$2 [L] 
+RewriteRule ^tesdiq_(.*)\.html$ tesdiq.php?token=$1 [L] 
+RewriteRule ^hls_([0-9]*)\.m3u8$ videom3u.php?vid=$1 [L] 
+RewriteRule ^player/([0-9]*)\.html$ player3.php?vid=$1 [L] 
+RewriteRule ^video/([0-9]*)\.html$ index.php?lang=az&type=video&cid=$1 [L] 
+RewriteRule ^channel/([0-9]*)\.html$ index.php?lang=az&type=channel&cid=$1 [L] 
+RewriteRule ^videocategory/([0-9]*)\.html$ index.php?lang=az&type=videocategory&cid=$1 [L] 
+RewriteRule ^player/([0-9]*).([0-9]*)\.html$ player3.php?vid=$1&autoplay=$2 [L] 
+RewriteRule ^player/([0-9]*).([0-9]*).([0-9]*)\.html$ player3.php?vid=$1&autoplay=$2&nextvid=$3 [L] 
+#RewriteRule ^(.*)/([0-9)]+)\.html$ index.php?lang=az&type=video&cid=$2&cat=$1 [L]
+
+RewriteRule ^([A-Za-z]+)-([A-Za-z)]+)/$ index.php?lang=$1&type=$2 [L] 
+
+RewriteRule ^([A-Za-z]+)/([A-Za-z)]+)/$ index.php?lang=$1&type=$2 [L] 
+
+RewriteRule ^([A-Za-z]+)-([A-Za-z)]+)-([0-9)]+)/$ index.php?lang=$1&type=$2&seh=$3 [L] 
+
+RewriteRule ^([A-Za-z]+)/([A-Za-z)]+)/([0-9)]+)\.html$ index.php?lang=$1&type=$2&cid=$3 [L]
+
+RewriteRule ^([A-Za-z]+)/([A-Za-z)]+)/([0-9)]+)/([0-9)]+)\.html$ index.php?lang=$1&type=$2&cid=$3&seh=$4 [L]
+
+RewriteRule ^([A-Za-z]+)/([A-Za-z)]+)/([0-9]*)-([0-9]*)\.html$ index.php?lang=$1&type=$2&cid=$3&subid=$4 [L]
+
+RewriteRule ^([A-Za-z]+)-([A-Za-z)]+)/([A-Za-z)]+)-([0-9)]+)\.html$ index.php?lang=$1&type=$2&view=$3&cid=$4 [L]
+
+RewriteRule ^([A-Za-z]+)-([A-Za-z)]+)/([A-Za-z)]+)-([0-9)]+)/([0-9)]+)\.html$ index.php?lang=$1&type=$2&view=$3&cid=$4&vid=$5 [L]
+
+RewriteRule ^([A-Za-z]+)-([A-Za-z)]+)/([A-Za-z)]+)-([0-9)]+)/([0-9)]+)-([0-9)]+)\.html$ index.php?lang=$1&type=$2&view=$3&cid=$4&vid=$5&videoid=$6 [L]
+
+RewriteRule ^([A-Za-z]+)/(.*)/(.*)/([A-Za-z)]+)-([0-9)]+)/([0-9)]+)-([0-9)]+)\.html$ index.php?lang=$1&type=$2&view=$3&cid=$4&vid=$5&videoid=$6 [L]
+

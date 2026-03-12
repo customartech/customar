@@ -1,0 +1,10 @@
+uploads/
+*.sql
+.DS_Store
+mpan/uploads/
+/vendor/
+node_modules/
+error_log
+*.zip
+projects/*.zip
+.well-known.zip

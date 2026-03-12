@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /css/
+Disallow: /fonts/
+Disallow: /js/
+Disallow: /assets/
+Disallow: /mpan/
+Disallow: /cgi-bin/
+Disallow: /*.php$
+Disallow: /https://webmail.customar.tech
+Allow: / 
+Sitemap: https://customar.tech/sitemap.xml
