@@ -157,7 +157,15 @@ if (isset($_POST['Submit'])) {
 
                         <!--Animated Block-->
                         <div class="ptf-animated-block" data-aos="fade" data-aos-delay="300">
-                            <h5 class="fz-14 text-uppercase has-3-color fw-normal">Tell us about your project and goals.</h5>
+                            <?php
+                            $contact_heading = 'Tell us about your project and goals.';
+                            if ($lang === 'az') {
+                                $contact_heading = 'Layihəniz və məqsədləriniz haqqında bizə danışın.';
+                            } elseif ($lang === 'ru') {
+                                $contact_heading = 'Расскажите нам о вашем проекте и целях.';
+                            }
+                            ?>
+                            <h5 class="fz-14 text-uppercase has-3-color fw-normal"><?php print $contact_heading; ?></h5>
                             <!--Spacer-->
                             <div class="ptf-spacer" style=" --ptf-xxl: 3.125rem;"></div>
                             <form action="" method="POST" enctype="multipart/form-data">

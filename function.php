@@ -8,6 +8,38 @@ function site_is_logged_in()
     } else {
         return false;
     }
+
+}
+
+function not_found_page($lang){
+    $lang = (string)$lang;
+    $title = '404';
+    $subtitle = 'Page not found';
+    $btn = 'Back to home';
+    if ($lang === 'ru') {
+        $subtitle = 'Страница не найдена';
+        $btn = 'На главную';
+    } elseif ($lang === 'az') {
+        $subtitle = 'Səhifə tapılmadı';
+        $btn = 'Əsas səhifə';
+    }
+
+    $homeUrl = '/'.$lang.'/main/';
+    print "<section>
+    <div class='ptf-spacer' style=' --ptf-xxl: 8rem; --ptf-md: 4rem;'></div>
+    <div class='container-xxl'>
+    <div class='row justify-content-center'>
+    <div class='col-lg-8 text-center'>
+    <h1 class='large-heading'>$title</h1>
+    <div class='ptf-spacer' style=' --ptf-xxl: 1rem; --ptf-md: .75rem;'></div>
+    <p class='fz-20 lh-1p5 has-black-color'>$subtitle</p>
+    <div class='ptf-spacer' style=' --ptf-xxl: 2rem; --ptf-md: 1.25rem;'></div>
+    <a class='ptf-btn ptf-btn--primary' href='$homeUrl'>$btn</a>
+    </div>
+    </div>
+    </div>
+    <div class='ptf-spacer' style=' --ptf-xxl: 8rem; --ptf-md: 4rem;'></div>
+    </section>";
 }
 
 function ip_to_country($db_link)
@@ -73,7 +105,11 @@ function legacy_slug($s){
 function resolve_category_id_by_slug($type, $slug, $lang, $db_link){
     $slug = (string)$slug;
     if ($slug === '') return null;
-    $rows = $db_link->where('type', $type)->where('status', 'active')->get('category', null, ['id', 'name_'.$lang]);
+    if ($type === 'content') {
+        $rows = $db_link->get('category', null, ['id', 'name_'.$lang]);
+    } else {
+        $rows = $db_link->where('type', $type)->where('status', 'active')->get('category', null, ['id', 'name_'.$lang]);
+    }
     foreach ($rows as $r) {
         $name = (string)($r['name_'.$lang] ?? '');
         if ($name !== '' && (latin_slug($name) === $slug || legacy_slug($name) === $slug)) {
@@ -136,6 +172,8 @@ function apply_slug_routes_and_redirect($request_path, $lang, $db_link){
                 header('Location: /'.$m[1].'/portfolio/'.$canonical, true, 301);
                 exit;
             }
+        } else {
+            $_GET['type'] = 'notpage';
         }
         return;
     }
@@ -143,7 +181,11 @@ function apply_slug_routes_and_redirect($request_path, $lang, $db_link){
         $_GET['lang'] = $m[1];
         $_GET['type'] = 'opennews';
         $sid = resolve_service_id_by_slug($m[2], $lang, $db_link);
-        $nid = resolve_news_id_by_slug(1, (int)($sid ?? 0), $m[3], $lang, $db_link);
+        if (empty($sid)) {
+            $_GET['type'] = 'notpage';
+            return;
+        }
+        $nid = resolve_news_id_by_slug(1, (int)$sid, $m[3], $lang, $db_link);
         if ($nid) {
             $_GET['cid'] = $nid;
             $service_name = '';
@@ -157,6 +199,8 @@ function apply_slug_routes_and_redirect($request_path, $lang, $db_link){
                 header('Location: /'.$m[1].'/portfolio/'.$canonical_service.'/'.$canonical_project, true, 301);
                 exit;
             }
+        } else {
+            $_GET['type'] = 'notpage';
         }
         return;
     }
@@ -244,6 +288,10 @@ function menyu_cont_service($db_link){
 
 function testimonial($db_link, $lang){ 
     global $testimonials;
+    $tbl_news = $db_link->arraybuilder()->where('category_id', 9)->orderBy("id", "desc")->get('news', array(0, 15));
+    if (empty($tbl_news) || !is_array($tbl_news)) {
+        return;
+    }
     print "<section style='background-color: #f2f2f2;'>
     <!--Spacer-->
     <div class='ptf-spacer' style=' --ptf-xxl: 8.75rem; --ptf-md: 4.375rem;'></div>
@@ -274,14 +322,14 @@ function testimonial($db_link, $lang){
     <div class='ptf-content-slider swiper-container ' data-cursor='' data-navigation-anchor='.ptf-review-slider' data-gap='170' data-loop='enable' data-speed='1000' data-autoplay='true' data-autoplay-speed='5000' data-slides-centered='' data-slide-settings='{&quot;slides_to_show_tablet&quot;:2,&quot;slides_to_show&quot;:2}' data-free-mode='' data-slider-offset='' data-mousewheel=''>
     <div class='swiper-wrapper'>";
     $i = 0;
-    $tbl_news = $db_link->arraybuilder()->where('category_id', 9)->orderBy("id", "desc")->get('news', array(0, 15));
     $totalpage = $db_link->totalPages;
     foreach ($tbl_news as $line) {
         $i++;
         $nomre = $line["id"];
         $create_date = getTheDay($line["news_date"]);
         $basliq = stripslashes($line["title_" . $lang]);
-        $client = stripslashes($line["client"]);
+        $client = strip_tags(stripslashes($line["client"]));
+        $basliq_plain = strip_tags((string)$basliq);
         $content = $line["content_" . $lang];
 
         print "                                        <div class='swiper-slide'>
@@ -558,10 +606,10 @@ function home_news_slider($category_id, $lang, $db_link){
         $basliq = stripslashes($line["title_" . $lang]);
         $content = strip_tags(stripslashes($line["content_" . $lang]));
         $read_count = stripslashes($line["read_count"]);
-        $service_id = (int)($line['service'] ?? 0);
+        $item_service_id = (int)($line['service'] ?? 0);
         $service_title = '';
-        if ($service_id > 0) {
-            $service_title = (string)$db_link->where('id', $service_id)->getValue('services_service', 'title_'.$lang);
+        if ($item_service_id > 0) {
+            $service_title = (string)$db_link->where('id', $item_service_id)->getValue('services_service', 'title_'.$lang);
         }
         $service_slug = latin_slug($service_title);
         $project_slug = latin_slug(strip_tags((string)$basliq));
@@ -595,15 +643,30 @@ function home_news_slider($category_id, $lang, $db_link){
     </div>";
 }
 
-function next_news_blok($cid, $lang, $db_link){
+function next_news_blok($service_id, $exclude_news_id, $lang, $db_link){
     global $b_read_more,$cl_next;
+
+    $service_id = (int)$service_id;
+    $exclude_news_id = (int)$exclude_news_id;
+
+    $section_title = 'Oxşar layihələr';
+    if ($lang === 'en') {
+        $section_title = 'Similar projects';
+    } elseif ($lang === 'ru') {
+        $section_title = 'Похожие проекты';
+    }
+
+    $same_category_id = 0;
+    if ($exclude_news_id > 0) {
+        $same_category_id = (int)$db_link->where('id', $exclude_news_id)->getValue('news', 'category_id');
+    }
 
     print "<section>
     <div class='ptf-post-navigation ptf-post-navigation--style-2'>
    
     <div class='container-xxl'>
      <div class='ptf-animated-block' data-aos='fade' data-aos-delay=0>
-    <h2 class='h2 d-inline-flex' style='margin-bottom: 30px;'>$cl_next</h2>
+    <h2 class='h2 d-inline-flex' style='margin-bottom: 30px;'>$section_title</h2>
     </div>
     <div class='row'>
     <div class='col-lg-12'>
@@ -611,13 +674,23 @@ function next_news_blok($cid, $lang, $db_link){
     <div class='row'>
     ";
 
-    $tbl_news = $db_link->where('service', $cid)->orderBy("RAND ()")->get('news', array(0, 2));
+    if ($service_id > 0) {
+        $db_link->where('service', $service_id);
+    }
+    if ($same_category_id > 0) {
+        $db_link->where('category_id', $same_category_id);
+    }
+    if ($exclude_news_id > 0) {
+        $db_link->where('id', $exclude_news_id, '!=');
+    }
+    $tbl_news = $db_link->orderBy("RAND ()")->get('news', array(0, 2));
     $i = 0;
     foreach ($tbl_news as $line) {
         $i++;
         $nomre = $line["id"];
         $create_date = getTheDay($line["news_date"]);
         $basliq = stripslashes($line["title_" . $lang]);
+        $basliq_plain = strip_tags((string)$basliq);
         $content = explode("<!-- pagebreak -->", $line["content_" . $lang]);
         $read_count = stripslashes($line["read_count"]);
         $service_id = (int)($line['service'] ?? 0);
@@ -633,20 +706,27 @@ function next_news_blok($cid, $lang, $db_link){
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         $category_id = stripslashes($line["category_id"]);
         if ($img) $img = "/imageg_600_400_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
         $catname = $db_link->where('id', $category_id)->getValue("category", "name_$lang");
 
         $imgAttrs = "decoding='async'";
 
+        $client_line = strip_tags(stripslashes((string)($line['client'] ?? '')));
+        $basliq_plain = strip_tags((string)$basliq);
+        $title_big = trim((string)($content[0] ?? ''));
+        if ($title_big === '') $title_big = $basliq;
+
         print "<div class='col-lg-6'>
         <article class='ptf-work ptf-work--style-1'>
         <div class='ptf-work__media'><a class='ptf-work__link'  href='$nlink'></a><img src='$img' alt='$basliq' width='600' height='400' $imgAttrs>
         </div>
         <div class='ptf-work__meta'>
-        <h3 class='ptf-work__title'><a href='$nlink'>$basliq</a></h3>
-        <div class='ptf-work__category'>{$content[0]}</div>
-        
+        <a href='$nlink'>
+        <div class='ptf-work__category'>{$client_line} &nbsp;•&nbsp; {$basliq_plain}</div>
+        <h3 class='ptf-work__title'>{$title_big}</h3>
+        </a>
         </div>
         </article>
         </div>";
@@ -690,6 +770,7 @@ function home_news_blok_all($lang, $db_link){
         $nomre = $line["id"];
         $create_date = getTheDay($line["news_date"]);
         $basliq = stripslashes($line["title_" . $lang]);
+        $basliq_plain = strip_tags((string)$basliq);
         $content = explode("<!-- pagebreak -->", $line["content_" . $lang]);
         $read_count = stripslashes($line["read_count"]);
         $service_id = (int)($line['service'] ?? 0);
@@ -705,8 +786,9 @@ function home_news_blok_all($lang, $db_link){
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         $category_id = stripslashes($line["category_id"]);
-        $client = stripslashes($line["client"]);
+        $client = strip_tags(stripslashes($line["client"]));
         if ($img) $img = "/imageg_1200_800_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
         $catname = $db_link->where('id', $category_id)->getValue("category", "name_$lang");
 
@@ -721,7 +803,7 @@ function home_news_blok_all($lang, $db_link){
         </div>
         <div class='ptf-work__meta'>
         <a href='$nlink'>
-        <div class='ptf-work__category'>$client<span class='noqte'> • </span> $basliq</div>
+        <div class='ptf-work__category'>$client &nbsp;•&nbsp; {$basliq_plain}</div>
         <h3 class='ptf-work__title'>{$content[0]}</h3>
         </a>
         </div>
@@ -782,13 +864,16 @@ function home_news_blok($cid, $lang, $db_link){
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         $category_id = stripslashes($line["category_id"]);
         if ($img) $img = "/imageg_600_400_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
         $catname = $db_link->where('id', $category_id)->getValue("category", "name_$lang");
-
         $tbl_content = $db_link->where('id', $cid)->getOne('news');
 
         $imgAttrs = "decoding='async'";
+
+        $basliq_plain = strip_tags((string)$basliq);
+        $client_plain = strip_tags((string)($tbl_content["client"] ?? ''));
 
         print "<div class='col-lg-6'>
         <!--Portfolio Item-->
@@ -797,7 +882,7 @@ function home_news_blok($cid, $lang, $db_link){
         </div>
         <div class='ptf-work__meta'>
         <a href='$nlink'>
-        <div class='ptf-work__category'>{$tbl_content["client"]}<span class='noqte'> • </span> $basliq</div>
+        <div class='ptf-work__category'>{$client_plain}<span class='noqte'> • </span> {$basliq_plain}</div>
         <h3 class='ptf-work__title'>{$content[0]}</h3>
         </a>
         </div>
@@ -838,6 +923,7 @@ function home_news($category_id, $lang, $db_link){
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         $category_id = stripslashes($line["category_id"]);
         if ($img) $img = "/imageg_1200_900_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
         $catname = $db_link->where('id', $category_id)->getValue("category", "name_$lang");
@@ -886,6 +972,7 @@ function home_projects($category_id, $lang, $db_link)
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         $category_id = stripslashes($line["category_id"]);
         if ($img) $img = "/imageg_500_300_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
         $catname = $db_link->where('id', $category_id)->getValue("category", "name_$lang");
@@ -1130,6 +1217,7 @@ function files($category_id, $seh, $lang, $db_link)
         if ($nlink) $nlink = $gview . $nlink . "&embedded=true";
 
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         if ($img) $img = "/imageg_300_200_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
 
         print "<div class='col-md-4 wow fadeInUp' data-wow-delay='0." . $i . "s'><a target='_blank' rel='noopener noreferrer' href='$nlink'><div class='hovicon effect-8 icon-pdf'><span>$basliq</span></div></a></div>";
@@ -1465,6 +1553,7 @@ function xeberlercol($category_id, $page, $lang, $db_link)
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         if ($img) $img = "/imageg_1200_900_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
 
         print "<div class='card-header'>
@@ -1519,8 +1608,19 @@ function xeberler($category_id, $page, $lang, $db_link)
 home_content_s(16,$lang,$db_link);
 print"
     <div class='ptf-spacer' style=' --ptf-xxl: 4.375rem;'></div>";
+    $allsectors_label = trim((string)$allsectors);
+    if ($allsectors_label === '') {
+        if ($lang === 'en') {
+            $allsectors_label = 'All';
+        } elseif ($lang === 'ru') {
+            $allsectors_label = 'Все';
+        } else {
+            $allsectors_label = 'Hamısı';
+        }
+    }
+
     print "<ul class='ptf-filters ptf-filters--style-1' id='ptf-filter-masonry'>
-    <li class='filter-item' data-filter='*'><a href='/$lang/portfolio' class='kats'>$allsectors</a></li>";
+    <li class='filter-item' data-filter='*'><a href='/$lang/portfolio' class='kats'>$allsectors_label</a></li>";
     menyu_service(2,$db_link);
     print "
     </ul>"; 
@@ -1578,17 +1678,25 @@ print"
             $nlink = "/$lang/opennews/$nomre.html";
         }
         $img = stripslashes($line["img"]);
+        if (!$img && !empty($line["img1"])) $img = stripslashes($line["img1"]);
         if ($img) $img = "/imageg_1200_900_" . $img . "_news_" . $category_id . ".jpg"; else $img = "/no_image.png";
 
         $imgAttrs = "decoding='async'";
+
+        $client_line = strip_tags(stripslashes((string)($line['client'] ?? '')));
+        $basliq_plain = strip_tags((string)$basliq);
+        $title_big = trim((string)($content[0] ?? ''));
+        if ($title_big === '') $title_big = $basliq;
 
         print "<div class='col-lg-6 ptf-animated-block' data-aos='fade-up' data-aos-delay='500' data-aos-duration='1500'>
         <article class='ptf-work ptf-work--style-1'>
         <div class='ptf-work__media'><a class='ptf-work__link' href='$nlink'></a><img src='$img' alt='$basliq' width='1200' height='900' $imgAttrs>
         </div>
         <div class='ptf-work__meta'>
-        <h3 class='ptf-work__title'><a href='$nlink'>$basliq</a></h3>
-        <div class='ptf-work__category'>{$content[0]}</div>
+        <a href='$nlink'>
+        <div class='ptf-work__category'>{$client_line}<span class='noqte'> • </span> {$basliq_plain}</div>
+        <h3 class='ptf-work__title'>{$title_big}</h3>
+        </a>
         </div>
         </article>
         </div>";
@@ -1611,6 +1719,12 @@ print"
 function xeber_ac($cid, $lang, $db_link)
 {
     global $home, $security_test, $subid,$musteri,$servis;
+    $cid = (int)$cid;
+    if ($cid <= 0) {
+        if (!headers_sent()) http_response_code(404);
+        not_found_page($lang);
+        return;
+    }
     $tbl_category_id = $db_link->where("id", $cid)->getValue("news", "category_id");
     $tbl_category = $db_link->where("id", $tbl_category_id)->getValue("category", "name_" . $lang);
     $tbl_category_img = $db_link->where("id", $tbl_category_id)->getValue("category", "img1");
@@ -1622,6 +1736,12 @@ function xeber_ac($cid, $lang, $db_link)
     }
 
     $tbl_content = $db_link->where('id', $cid)->getOne('news');
+
+    if (empty($tbl_content) || !is_array($tbl_content)) {
+        if (!headers_sent()) http_response_code(404);
+        not_found_page($lang);
+        return;
+    }
 
     $catname = $db_link->where('id', $tbl_content["service"])->getValue("services_service", "title_$lang");
 
@@ -1678,7 +1798,7 @@ function xeber_ac($cid, $lang, $db_link)
     </div>
     </section>';
 
-    next_news_blok($tbl_content["service"], $lang, $db_link);
+    next_news_blok($tbl_content["service"], $cid, $lang, $db_link);
 
     print "</article>";    
 

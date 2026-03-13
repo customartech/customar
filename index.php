@@ -89,6 +89,32 @@ $view = isset($_GET['view']) ? preg_replace('/[^a-z0-9_\-]/i', '', (string)$_GET
 $vid = isset($_GET['vid']) ? preg_replace('/[^a-z0-9_\-]/i', '', (string)$_GET['vid']) : null;
 $create_date = null;
 
+if ($type === 'opennews' && !empty($cid)) {
+    $exists = $db_link->where('id', $cid)->getValue('news', 'id');
+    if (empty($exists)) {
+        $type = 'notpage';
+        $_GET['type'] = 'notpage';
+    }
+}
+if ($type === 'content' && !empty($cid)) {
+    $exists = $db_link->where('id', $cid)->getValue('category', 'id');
+    if (empty($exists)) {
+        $type = 'notpage';
+        $_GET['type'] = 'notpage';
+    }
+}
+if ($type === 'news' && !empty($cid)) {
+    $exists = $db_link->where('id', $cid)->getValue('category', 'id');
+    if (empty($exists)) {
+        $type = 'notpage';
+        $_GET['type'] = 'notpage';
+    }
+}
+
+if ($type === 'notpage') {
+    http_response_code(404);
+}
+
 
 
 if ($type == 'content') $home_title = $db_link->where('id', $cid)->getValue("category", "name_".$lang);
@@ -129,6 +155,9 @@ $og_image_url = $base_url . '/assets/img/root/logo-white.png';
 
 if ($type === 'opennews' && !empty($cid)) {
     $news_img = $db_link->where('id', $cid)->getValue('news', 'img');
+    if (empty($news_img)) {
+        $news_img = $db_link->where('id', $cid)->getValue('news', 'img1');
+    }
     $news_cat = $db_link->where('id', $cid)->getValue('news', 'category_id');
     $news_content = $db_link->where('id', $cid)->getValue('news', 'content_' . $lang);
 
@@ -206,8 +235,25 @@ if ($type === 'opennews' && !empty($cid)) {
         <link rel="stylesheet" href="/assets/fonts/LineIcons-PRO/WebFonts/Pro-Regular/font-css/LineIcons.css">
         <link rel="stylesheet" href="/assets/fonts/Socicons/socicon.css">
         <!--Style-->
-        <link rel="stylesheet" href="/assets/css/ptf-main.min.css?v=2.3">
+        <link rel="stylesheet" href="/assets/css/ptf-main.min.css?v=2.4">
         <!--Custom-->
+
+        <style>
+            .ptf-is--home-studio .ptf-work__title,
+            .ptf-is--home-studio .ptf-work__title *,
+            .ptf-is--home-studio .ptf-work__title a {
+                transition: color 250ms ease;
+            }
+
+            .ptf-is--home-studio .ptf-work:hover .ptf-work__title,
+            .ptf-is--home-studio .ptf-work:hover .ptf-work__title *,
+            .ptf-is--home-studio .ptf-work__title:hover,
+            .ptf-is--home-studio .ptf-work__title:hover *,
+            .ptf-is--home-studio .ptf-work__title a:hover,
+            .ptf-is--home-studio .ptf-work__title a:hover * {
+                color: #49c8f5 !important;
+            }
+        </style>
 
         <script type="application/ld+json">
             <?php
@@ -364,11 +410,14 @@ if ($type === 'opennews' && !empty($cid)) {
                 }
 
                 if ($type == 'notpage') {
-                    print "<center><h2>Error Document 404</h2></center>";
+                    not_found_page($lang);
                 }
 
                 if ($type == 'content') {
-                    if ($cid == 3)
+                    if (empty($cid)) {
+                        not_found_page($lang);
+                    }
+                    elseif ($cid == 3)
                         include "contact.php";
                     elseif ($cid == 12)
                         content_menyu($cid, $lang, $db_link);
@@ -376,13 +425,22 @@ if ($type === 'opennews' && !empty($cid)) {
                         content($cid, $lang, $db_link);
                 }
 
-                if ($type == 'opennews')
-                    xeber_ac($cid, $lang, $db_link);
+                if ($type == 'opennews') {
+                    if (empty($cid)) {
+                        not_found_page($lang);
+                    } else {
+                        xeber_ac($cid, $lang, $db_link);
+                    }
+                }
 
 
 
                 if ($type == 'news') {
-                    xeberler($cid, $seh, $lang, $db_link);
+                    if (empty($cid)) {
+                        not_found_page($lang);
+                    } else {
+                        xeberler($cid, $seh, $lang, $db_link);
+                    }
                 }
 
                 if ($type == 'photos')

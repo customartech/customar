@@ -70,11 +70,12 @@ if (!$security_test) exit;
         <!--Spacer-->
         <div class="ptf-spacer" style=" --ptf-xxl: 5rem; --ptf-md: 5rem;"></div>
         <div class="marquee">
+            <?php $contact_slug = latin_slug((string)$db_link->where('id', 3)->getValue('category', 'name_'.$lang)); ?>
             <ul class="get">
-                <li><span class="text"><a href="/content/3.html">Layihəniz var? Gəlin birlikdə çalışaq.</a></span></li>
+                <li><span class="text"><a href="/<?php print $lang; ?>/content/<?php print $contact_slug; ?>">Layihəniz var? Gəlin birlikdə çalışaq.</a></span></li>
              </ul>
              <ul aria-hidden="true" class="get">
-                <li><span class="text"><a href="/content/3.html">Layihəniz var? Gəlin birlikdə çalışaq.</a></span>
+                <li><span class="text"><a href="/<?php print $lang; ?>/content/<?php print $contact_slug; ?>">Layihəniz var? Gəlin birlikdə çalışaq.</a></span>
             </li>
         </ul>
         </div>

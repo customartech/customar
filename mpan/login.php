@@ -2,7 +2,9 @@
 session_start();
 include("config.php");
 include("function.php");
-if($_POST['giris']) {
+$error = "";
+
+if (isset($_POST['giris'])) {
     unset($_SESSION['machine']);
     unset($_SESSION['username']);
     unset($_SESSION['userid']);
@@ -119,6 +121,11 @@ if($_POST['giris']) {
                                         <div class="input-group">
                                             <span class="input-group-addon"><i class="fa fa-unlock" aria-hidden="true"></i></span>
                                             <input type="password" id="inputPassword" data-minlength="6" name="pass" class="form-control" data-error="Password to short" required />
+                                            <span class="input-group-btn">
+                                                <button class="btn btn-default" type="button" id="togglePassword" aria-label="Show password" title="Show password">
+                                                    <i class="fa fa-eye" aria-hidden="true"></i>
+                                                </button>
+                                            </span>
                                         </div>    
                                         <div class="help-block with-errors text-danger"></div>
                                     </div>
@@ -159,11 +166,26 @@ if($_POST['giris']) {
         </footer>
 
         <!-- Core Scripts -->
-        <script src="assets/js/jquery-1.10.2.min.js"></script>
+        <script src="assets/js/jquery-1.12.4.min.js"></script>
+        <script src="assets/js/popper.min.js"></script>
         <script src="assets/js/bootstrap.min.js"></script>
-
-        <!-- Bootstrap validator  -->
         <script src="assets/js/validator.min.js"></script>
-
+        <script>
+            (function () {
+                var btn = document.getElementById('togglePassword');
+                var input = document.getElementById('inputPassword');
+                if (!btn || !input) return;
+                btn.addEventListener('click', function () {
+                    var isPassword = input.getAttribute('type') === 'password';
+                    input.setAttribute('type', isPassword ? 'text' : 'password');
+                    var icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = isPassword ? 'fa fa-eye-slash' : 'fa fa-eye';
+                    }
+                    btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                    btn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+                });
+            })();
+        </script>
     </body>
 </html>

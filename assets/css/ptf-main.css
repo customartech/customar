@@ -4791,7 +4791,12 @@ p.form-submit
 {
     text-decoration: underline;
 
-    color: inherit;
+}
+
+.ptf-is--home-studio .ptf-work--style-1:hover .ptf-work__title,
+.ptf-is--home-studio .ptf-work--style-1:hover .ptf-work__title *
+{
+    color: #49c8f5;
 }
 
 /* SECTION: STYLE 2
@@ -6420,11 +6425,11 @@ p.form-submit
 {
     background-color: #00b2a6;
 }
-.ptf-social-icon--style-4.500px
+.ptf-social-icon--style-4.\35 00px
 {
     background-color: #58a9de;
 }
-.ptf-social-icon--style-4.8tracks
+.ptf-social-icon--style-4.\38 tracks
 {
     background-color: #122c4b;
 }

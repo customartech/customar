@@ -7,6 +7,49 @@ if(!is_logged_in()){
 //if ($_GET['tip']==) $news_date=$news_info['news_date']; else $news_date=date('Y-m-d');
 $category_id=$_GET['category_id'];
 
+if (isset($_POST['add_client_quick'])) {
+    $return_url = $_SERVER['REQUEST_URI'] ?? ('?menu=xeber&category_id='.(int)$category_id);
+
+    $client_name = trim((string)($_POST['client_name'] ?? ''));
+    if ($client_name === '') {
+        echo '<script>document.location.href="'.$return_url.'";</script>';
+        exit;
+    }
+
+    $partners_category_id = 5;
+    $desired_dir_partners = "../uploads/photos/$partners_category_id/";
+    if (is_dir($desired_dir_partners) == false) {
+        mkdir($desired_dir_partners, 0755);
+    }
+
+    $insert_data = array(
+        'm_id' => $partners_category_id,
+        'name_az' => $client_name,
+        'name_en' => '',
+        'name_ru' => '',
+        'link_az' => '',
+        'link_en' => '',
+        'link_ru' => '',
+        'description' => ''
+    );
+    $new_id = $db_link->insert('photos', $insert_data);
+
+    if (!empty($new_id) && isset($_FILES['client_logo']) && !empty($_FILES['client_logo']['name'])) {
+        $saat = date('YmdHis');
+        $ext = pathinfo($_FILES['client_logo']['name'], PATHINFO_EXTENSION);
+        $img_name = 'photos'.$partners_category_id.'_az_'.$saat.'.'.$ext;
+        $target_path = $desired_dir_partners.$img_name;
+        if (move_uploaded_file($_FILES['client_logo']['tmp_name'], $target_path)) {
+            $db_link->where('id', (int)$new_id)->update('photos', array('file_az' => $img_name));
+        }
+    }
+
+    $sep = (strpos($return_url, '?') !== false) ? '&' : '?';
+    $redirect = $return_url.$sep.'new_client='.urlencode($client_name);
+    echo '<script>document.location.href="'.$redirect.'";</script>';
+    exit;
+}
+
 
 $desired_dir="../uploads/news/$category_id/";
 if(is_dir($desired_dir)==false){
@@ -93,6 +136,8 @@ if ($_GET['tip']=='edit_xeber'){
     $id = addslashes($_GET['cid']);
     $news_info = $db_link->where ('id', $id)->getOne('news');
 
+    $client_options = $db_link->where('m_id', 5)->orderBy('name_az', 'asc')->get('photos', null, ['name_az']);
+
     if(!$_POST['edit']) {
         ?>
 
@@ -141,14 +186,39 @@ if ($_GET['tip']=='edit_xeber'){
                                 <div class="form-group">
                                     <label>Service</label>
                                     <?php
-                                    combo_service($services_info['service'],$db_link);
+                                    combo_service($news_info['service'],$db_link);
                                     ?>
                                 </div>
                                 <div class="form-group">
                                     <label>Date</label><input class="form-control" type="text" name="news_date" size="22" value='<?php print addslashes($news_info['news_date'])?>'>
                                 </div>
                                 <div class="form-group">
-                                    <label>Client</label><input class="form-control" type="text" name="client" size="22" value='<?php print addslashes($news_info['client'])?>'>
+                                    <label>Client</label>
+                                    <select class="form-control select21" name="client">
+                                        <?php
+                                        $current_client = trim((string)($_GET['new_client'] ?? ($news_info['client'] ?? '')));
+                                        $seen_clients = [];
+                                        if ($current_client !== '') {
+                                            $safe_current = htmlspecialchars($current_client, ENT_QUOTES, 'UTF-8');
+                                            $seen_clients[mb_strtolower($current_client, 'UTF-8')] = true;
+                                            print "<option value=\"$safe_current\" selected=\"selected\">$safe_current</option>";
+                                        } else {
+                                            print "<option value=\"\" selected=\"selected\"></option>";
+                                        }
+                                        if (!empty($client_options) && is_array($client_options)) {
+                                            foreach ($client_options as $opt) {
+                                                $name = trim((string)($opt['name_az'] ?? ''));
+                                                if ($name === '') continue;
+                                                $key = mb_strtolower($name, 'UTF-8');
+                                                if (isset($seen_clients[$key])) continue;
+                                                $seen_clients[$key] = true;
+                                                $safe = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+                                                print "<option value=\"$safe\">$safe</option>";
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary mt-2" data-toggle="modal" data-target="#quickClientModal">+</button>
                                 </div>
 
                                 <div class="form-group">
@@ -164,6 +234,35 @@ if ($_GET['tip']=='edit_xeber'){
                                 <input class="btn btn-primary" name="edit" type="submit" id="edit" value="Ok"> <input  class="btn btn-primary" type=button value="Cancel" onclick="javascript:history.go(-1);">
                             </center>
                         </form>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="quickClientModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <form method="post" enctype="multipart/form-data">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Add client</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label>Client name</label>
+                                        <input class="form-control" type="text" name="client_name" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Logo</label>
+                                        <input class="form-control" type="file" name="client_logo" accept="image/*">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary" name="add_client_quick" value="1">Save</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -289,6 +388,7 @@ if ($_GET['tip']=='edit_xeber'){
 
 if ($_GET['tip']=='add_xeber'){
     if(!$_POST['add']) {
+        $client_options = $db_link->where('m_id', 5)->orderBy('name_az', 'asc')->get('photos', null, ['name_az']);
         ?>
         <div class="col-lg-12">
             <div class="card card-primary mb-3">
@@ -334,11 +434,36 @@ if ($_GET['tip']=='add_xeber'){
                                 <div class="form-group">
                                     <label>Service</label>
                                     <?php
-                                    combo_service($services_info['service'],$db_link);
+                                    combo_service(0,$db_link);
                                     ?>
                                 </div>
                                 <div class="form-group">
-                                    <label>Client</label><input class="form-control" type="text" name="client" size="22" value='<?php print addslashes($news_info['client'])?>'>
+                                    <label>Client</label>
+                                    <select class="form-control select21" name="client">
+                                        <?php
+                                        $current_client = trim((string)($_GET['new_client'] ?? ''));
+                                        $seen_clients = [];
+                                        if ($current_client !== '') {
+                                            $safe_current = htmlspecialchars($current_client, ENT_QUOTES, 'UTF-8');
+                                            $seen_clients[mb_strtolower($current_client, 'UTF-8')] = true;
+                                            print "<option value=\"$safe_current\" selected=\"selected\">$safe_current</option>";
+                                        } else {
+                                            print "<option value=\"\" selected=\"selected\"></option>";
+                                        }
+                                        if (!empty($client_options) && is_array($client_options)) {
+                                            foreach ($client_options as $opt) {
+                                                $name = trim((string)($opt['name_az'] ?? ''));
+                                                if ($name === '') continue;
+                                                $key = mb_strtolower($name, 'UTF-8');
+                                                if (isset($seen_clients[$key])) continue;
+                                                $seen_clients[$key] = true;
+                                                $safe = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+                                                print "<option value=\"$safe\">$safe</option>";
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary mt-2" data-toggle="modal" data-target="#quickClientModal">+</button>
                                 </div>
                                 <div class="form-group">
                                     <label>Date</label><input class="form-control" type="text" name="news_date" size="22" value='<?php print date('Y-m-d')?>'>
@@ -354,6 +479,35 @@ if ($_GET['tip']=='add_xeber'){
                                 <input class="btn btn-primary" name="add" type="submit" id="edit" value="Ok"> <input  class="btn btn-primary" type=button value="Cancel" onclick="javascript:history.go(-1);">
                             </center>
                         </form>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="quickClientModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <form method="post" enctype="multipart/form-data">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Add client</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label>Client name</label>
+                                        <input class="form-control" type="text" name="client_name" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Logo</label>
+                                        <input class="form-control" type="file" name="client_logo" accept="image/*">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary" name="add_client_quick" value="1">Save</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
